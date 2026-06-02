@@ -757,4 +757,640 @@
 
   <div class="withdrawal-section">
     <h2><i class="fas fa-hand-holding-usd"></i> Withdraw Funds</h2>
-    <p cla 
+    <p class="min-withdraw">Minimum Withdrawal: $50.00</p>
+    <p class="invite-req-note"><i class="fas fa-info-circle"></i> Note: Requires at least 10 valid invites.</p>
+    <div class="withdrawal-methods">
+      <div><i class="fas fa-mobile-alt easypaisa-icon"></i><br/>Easypaisa</div>
+      <div><i class="fas fa-wallet jazzcash-icon"></i><br/>JazzCash</div>
+      <div><i class="fab fa-btc binance-icon"></i><br/>Binance</div>
+    </div>
+    <div class="withdrawal-form">
+      <label for="withdrawAmount">Amount ($)</label>
+      <input type="number" id="withdrawAmount" placeholder="Enter amount (e.g., 55.50)" min="50" step="0.01" required />
+      <label for="withdrawMethodDash">Withdrawal Method</label>
+      <select id="withdrawMethodDash" required>
+        <option value="" disabled selected />Select Method
+        <option value="Easypaisa" />Easypaisa
+        <option value="JazzCash" />JazzCash
+        <option value="Binance" />Binance
+      </select>
+      <label for="accountDetails">Account Details</label>
+      <input type="text" id="accountDetails" placeholder="Account Number / Binance ID (BEP20)" required />
+      <button class="request-withdraw-btn" id="requestWithdrawBtn">Request Withdrawal</button>
+      <div id="withdraw-message-area" class="message-area"></div>
+    </div>
+  </div>
+</div>
+
+<div id="logged-out-extras">
+  <div class="stats-outside">
+    <div class="stat-box-outside">
+      <i class="fas fa-user-friends"></i>
+      <h3>Total Registered Users</h3>
+      <p class="counter-outside" id="userCount" data-end="75240">0</p>
+    </div>
+    <div class="stat-box-outside">
+      <i class="fas fa-wallet"></i>
+      <h3>Total Payments ($)</h3>
+      <p class="counter-outside" id="paymentCount" data-end="19500">0</p>
+    </div>
+    <div class="stat-box-outside">
+      <i class="fas fa-clock"></i>
+      <h3>Withdraw Processed</h3>
+      <p class="counter-outside" id="withdrawCount" data-end="32456">0</p>
+    </div>
+  </div>
+  <div class="live-transactions" id="live-transactions-section">
+    <h2><i class="fas fa-bolt"></i> Recent Withdrawals</h2>
+    <div id="animated-transactions">
+      <div id="scroll-content">
+        <p> Ahmed withdrew $50 via Easypaisa | Sana got $70 in Binance | Usman received $55 via JazzCash | Hira got $65 via Easypaisa | Bilal earned $80 from Binance | Fatima withdrew $60 via JazzCash | Ali requested $100 via Binance </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBWSa24z2v0CS5xI6thodgmdj3i15C3dNc",
+    authDomain: "ayz-earning.firebaseapp.com",
+    databaseURL: "https://ayz-earning-default-rtdb.firebaseio.com",
+    projectId: "ayz-earning",
+    storageBucket: "ayz-earning.firebasestorage.app",
+    messagingSenderId: "925709437146",
+    appId: "1:925709437146:web:9cca8eafcff72e3ef97de3"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const database = firebase.database();
+
+  // DOM Elements
+  const authForm = document.getElementById('authForm');
+  const dashboard = document.getElementById('dashboard');
+  const registerBtn = document.getElementById('registerBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loggedOutExtras = document.getElementById('logged-out-extras');
+  const liveTransactionsSection = document.getElementById('live-transactions-section');
+  const welcomeMessage = document.getElementById('welcome-message');
+  const userEmailDash = document.getElementById('user-email-dash');
+  const userNameDash = document.getElementById('user-name-dash');
+  const totalEarningsSpan = document.getElementById('total-earnings');
+  const totalWithdrawalSpan = document.getElementById('total-withdrawal');
+  const todayEarningSpan = document.getElementById('today-earning');
+  const referralCountSpan = document.getElementById('referral-count');
+  const adsContainer = document.getElementById('ads-container');
+  const adsViewedTodaySpan = document.getElementById('ads-viewed-today');
+  const adMessageArea = document.getElementById('ad-message-area');
+  const withdrawAmountInput = document.getElementById('withdrawAmount');
+  const withdrawMethodDashSelect = document.getElementById('withdrawMethodDash');
+  const accountDetailsInput = document.getElementById('accountDetails');
+  const requestWithdrawBtn = document.getElementById('requestWithdrawBtn');
+  const withdrawMessageArea = document.getElementById('withdraw-message-area');
+  const authMessageArea = document.getElementById('auth-message-area');
+  const inviteLinkDisplay = document.getElementById('invite-link-display');
+  const copyLinkBtn = document.getElementById('copy-link-btn');
+  const copyMessageArea = document.getElementById('copy-message-area');
+
+  // --- Updated Constants for 10 ads, $0.30 reward, with your provided links ---
+  const AD_LINKS = [
+    "https://rungbeacon.com/en81ei1z?key=e838d1e9b9ede67c15b3c1db8926d8df", // ad 1
+    "https://rungbeacon.com/k67bhpngu?key=068242571df7d1219c9001bf58201b82", // ad 2
+    "https://omg10.com/4/10731438", // ad 3
+    "https://omg10.com/4/10731441", // ad 4
+    "https://omg10.com/4/10731446", // ad 5
+    "https://rungbeacon.com/xphmjvhjnm?key=40c2c141bee4737af6ff06c434fdd4dd", // ad 6
+    "https://rungbeacon.com/d2ta4m95kw?key=aa0f8ad917f420027346cd97e9b80d93", // ad 7
+    "https://rungbeacon.com/gzmkytaese?key=dde34c19baadf4f7a049a43754a4f246", // ad 8
+    "https://rungbeacon.com/b4dttiq533?key=b0ae20dbf5c42e44b2078fec2e69b8c1", // ad 9
+    "https://rungbeacon.com/ykedh2iqjf?key=5200292ee9fd812d28f3349c5e60fd42"  // ad 10
+  ];
+
+  const DAILY_AD_LIMIT = 10;          // 10 ads per day
+  const AD_REWARD = 0.30;              // $0.30 per ad
+  const MIN_WITHDRAWAL = 50;
+  const REGISTRATION_BONUS = 2.00;
+  const MIN_REFERRALS_FOR_WITHDRAWAL = 10;
+
+  // Global Variables
+  let currentUser = null;
+  let userData = null;
+  let dailyAdStats = { count: 0, viewedAds: {} };
+
+  // --- Utility Functions (unchanged) ---
+  function showMessage(area, message, isSuccess = true) {
+    if (!area) return;
+    area.textContent = message;
+    area.className = 'message-area ' + (isSuccess ? 'success-msg' : 'error-msg');
+    const currentText = message;
+    setTimeout(() => {
+      if (area && area.textContent === currentText) {
+        area.textContent = '';
+      }
+    }, 5000);
+  }
+
+  function getCurrentDateString() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function generateInviteLink(userId) {
+    const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+    return `${baseUrl}?ref=${userId}`;
+  }
+
+  function copyToClipboard(text) {
+    if (!navigator.clipboard) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = 0;
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        if(copyMessageArea) showMessage(copyMessageArea, 'Link copied!', true);
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        if(copyMessageArea) showMessage(copyMessageArea, 'Copy failed.', false);
+      }
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      if(copyMessageArea) showMessage(copyMessageArea, 'Link copied!', true);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+      if(copyMessageArea) showMessage(copyMessageArea, 'Copy failed.', false);
+    });
+  }
+
+  // --- Firebase Interaction (unchanged) ---
+  function updateFirebaseBalance(userId, amountToAdd) {
+    const ref = database.ref(`users/${userId}/balance`);
+    return ref.transaction(current => (current || 0) + amountToAdd);
+  }
+
+  function decreaseFirebaseBalance(userId, amountToDecrease) {
+    const ref = database.ref(`users/${userId}/balance`);
+    return ref.transaction(current => {
+      if (current === null || current < amountToDecrease) return; // abort
+      return current - amountToDecrease;
+    });
+  }
+
+  function updateFirebaseTodayEarning(userId, amountToAdd) {
+    const ref = database.ref(`users/${userId}/dailyStats/${getCurrentDateString()}/earnings`);
+    return ref.transaction(current => (current || 0) + amountToAdd);
+  }
+
+  function updateFirebaseAdView(userId, adIndex) {
+    const ref = database.ref(`users/${userId}/dailyStats/${getCurrentDateString()}`);
+    return ref.transaction(current => {
+      if (current === null) current = { count: 0, viewedAds: {}, earnings: 0 };
+      if (!current.viewedAds) current.viewedAds = {};
+      if (!current.viewedAds[adIndex]) {
+        current.count = (current.count || 0) + 1;
+        current.viewedAds[adIndex] = true;
+      }
+      return current;
+    });
+  }
+
+  function updateFirebaseTotalWithdrawal(userId, amountToWithdraw) {
+    const ref = database.ref(`users/${userId}/totalWithdrawal`);
+    return ref.transaction(current => (current || 0) + amountToWithdraw);
+  }
+
+  function recordWithdrawalRequest(userId, amount, method, details) {
+    const ref = database.ref('withdrawalRequests').push();
+    return ref.set({
+      userId,
+      email: currentUser?.email || 'N/A',
+      amount,
+      method,
+      accountDetails: details,
+      status: 'pending',
+      requestTimestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
+  function setupInitialUserData(userId, email, username, referrerUid) {
+    const initialUserData = {
+      username,
+      email,
+      balance: REGISTRATION_BONUS,
+      totalWithdrawal: 0,
+      joinDate: new Date().toISOString(),
+      invitedBy: referrerUid || null,
+      referralCount: 0
+    };
+    return database.ref(`users/${userId}`).set(initialUserData);
+  }
+
+  // --- UI Update Functions (unchanged) ---
+  function updateDashboardUI() {
+    if (!userData || !currentUser) return;
+    welcomeMessage.textContent = `Welcome back, ${userData.username || 'User'}!`;
+    userEmailDash.textContent = currentUser.email;
+    userNameDash.textContent = userData.username || 'N/A';
+    totalEarningsSpan.textContent = (userData.balance || 0).toFixed(2);
+    totalWithdrawalSpan.textContent = (userData.totalWithdrawal || 0).toFixed(2);
+    referralCountSpan.textContent = userData.referralCount || 0;
+    const today = getCurrentDateString();
+    const todayStats = userData.dailyStats?.[today];
+    todayEarningSpan.textContent = (todayStats?.earnings || 0).toFixed(2);
+    dailyAdStats.count = todayStats?.count || 0;
+    dailyAdStats.viewedAds = todayStats?.viewedAds || {};
+    adsViewedTodaySpan.textContent = dailyAdStats.count;
+    renderAdButtons();
+    if (inviteLinkDisplay) {
+      inviteLinkDisplay.value = generateInviteLink(currentUser.uid);
+    } else {
+      console.warn("Invite link display element not found.");
+    }
+  }
+
+  function clearDashboardUI() {
+    welcomeMessage.textContent = 'Welcome back!';
+    userEmailDash.textContent = '';
+    userNameDash.textContent = '';
+    totalEarningsSpan.textContent = '0.00';
+    totalWithdrawalSpan.textContent = '0.00';
+    todayEarningSpan.textContent = '0.00';
+    referralCountSpan.textContent = '0';
+    adsViewedTodaySpan.textContent = '0';
+    if(inviteLinkDisplay) inviteLinkDisplay.value = '';
+    if(copyMessageArea) copyMessageArea.textContent = '';
+    adsContainer.innerHTML = '';
+    withdrawMessageArea.textContent = '';
+    adMessageArea.textContent = '';
+    withdrawAmountInput.value = '';
+    if (withdrawMethodDashSelect) withdrawMethodDashSelect.selectedIndex = 0;
+    accountDetailsInput.value = '';
+  }
+
+  // --- Ad Logic (modified for 10 specific links) ---
+  function renderAdButtons() {
+    adsContainer.innerHTML = '';
+    for (let i = 0; i < DAILY_AD_LIMIT; i++) {
+      const adSlot = document.createElement('div');
+      adSlot.className = 'ad-slot';
+      const adButton = document.createElement('button');
+      adButton.id = `ad-btn-${i}`;
+      adButton.dataset.index = i;
+      if (dailyAdStats.viewedAds[i]) {
+        adButton.textContent = 'Viewed';
+        adButton.disabled = true;
+      } else {
+        adButton.textContent = `View Ad #${i + 1}`;
+        adButton.disabled = false;
+      }
+      if (!adButton.disabled) {
+        adButton.addEventListener('click', (e) => {
+          handleAdView(parseInt(e.target.dataset.index));
+        });
+      }
+      adSlot.appendChild(adButton);
+      adsContainer.appendChild(adSlot);
+    }
+    if (dailyAdStats.count >= DAILY_AD_LIMIT) {
+      disableAllAdButtons();
+    }
+  }
+
+  function disableAllAdButtons() {
+    adsContainer.querySelectorAll('button').forEach(button => {
+      if (!button.textContent.includes('Viewed')) button.textContent = 'Limit Reached';
+      button.disabled = true;
+    });
+  }
+
+  // Get the link for a given ad index (0-based)
+  function getAdLinkForIndex(adIndex) {
+    return AD_LINKS[adIndex]; // direct mapping from the array
+  }
+
+  // Modified handleAdView with early close detection
+  function handleAdView(adIndex) {
+    const adButton = document.getElementById(`ad-btn-${adIndex}`);
+    if (!currentUser || !userData || !adButton || adButton.disabled) return;
+
+    const today = getCurrentDateString();
+    database.ref(`users/${currentUser.uid}/dailyStats/${today}`).once('value').then(snapshot => {
+      const stats = snapshot.val() || { count: 0, viewedAds: {} };
+      if (stats.count >= DAILY_AD_LIMIT) {
+        showMessage(adMessageArea, "Daily ad limit reached.", false);
+        disableAllAdButtons();
+        return;
+      }
+      if (stats.viewedAds?.[adIndex]) {
+        showMessage(adMessageArea, `Ad ${adIndex + 1} already viewed.`, false);
+        adButton.disabled = true;
+        adButton.textContent = 'Viewed';
+        return;
+      }
+
+      // Disable button and show opening message
+      adButton.disabled = true;
+      adButton.textContent = 'Opening...';
+      showMessage(adMessageArea, `Opening ad ${adIndex + 1}. Please watch for 60 seconds...`, true);
+
+      // Get the appropriate link
+      const adLink = getAdLinkForIndex(adIndex);
+
+      // Open the ad in a new window/tab and keep a reference
+      const adWindow = window.open(adLink, '_blank');
+
+      // If popup blocked, adWindow will be null
+      if (!adWindow) {
+        showMessage(adMessageArea, "Pop-up blocked! Please allow pop-ups and try again.", false);
+        adButton.disabled = false;
+        adButton.textContent = `View Ad #${adIndex + 1}`;
+        return;
+      }
+
+      // Set up a check to see if the window is closed early
+      let rewardTimeout = setTimeout(() => {
+        // If we reach 60 seconds, reward the user (only if window still exists? We'll just credit)
+        // But we must ensure we don't double credit if already cancelled.
+        if (adButton.textContent !== 'Viewed') { // not already marked as viewed
+          Promise.all([
+            updateFirebaseBalance(currentUser.uid, AD_REWARD),
+            updateFirebaseTodayEarning(currentUser.uid, AD_REWARD),
+            updateFirebaseAdView(currentUser.uid, adIndex)
+          ])
+          .then(() => {
+            adButton.textContent = 'Viewed';
+            showMessage(adMessageArea, `Ad ${adIndex + 1} viewed! +$${AD_REWARD.toFixed(2)}`, true);
+            // Update local ad stats
+            dailyAdStats.count = (dailyAdStats.count || 0) + 1;
+            if (!dailyAdStats.viewedAds) dailyAdStats.viewedAds = {};
+            dailyAdStats.viewedAds[adIndex] = true;
+            adsViewedTodaySpan.textContent = dailyAdStats.count;
+          })
+          .catch(error => {
+            console.error("Ad view DB update error:", error);
+            showMessage(adMessageArea, "Error recording earnings.", false);
+            adButton.disabled = false;
+            adButton.textContent = `View Ad #${adIndex + 1}`;
+          });
+        }
+      }, 60000); // 60 seconds
+
+      // Monitor window close
+      const closeCheckInterval = setInterval(() => {
+        if (adWindow.closed) {
+          clearInterval(closeCheckInterval);
+          clearTimeout(rewardTimeout); // Cancel the reward
+          // Only show message if button is still in "Opening..." state (i.e., not already rewarded)
+          if (adButton.textContent === 'Opening...' || adButton.textContent === 'Viewing...') {
+            showMessage(adMessageArea, "You closed the ad window early. No earnings credited.", false);
+            adButton.disabled = false;
+            adButton.textContent = `View Ad #${adIndex + 1}`;
+          }
+        }
+      }, 500); // check every 500ms
+
+    }).catch(error => {
+      console.error("Error checking ad status:", error);
+      showMessage(adMessageArea, "Could not check ad status.", false);
+    });
+  }
+
+  // --- Authentication Logic (unchanged) ---
+  registerBtn.addEventListener('click', () => {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if (!username || !email || !password) {
+      showMessage(authMessageArea, 'Fill all fields.', false);
+      return;
+    }
+    if (password.length < 6) {
+      showMessage(authMessageArea, 'Password min 6 chars.', false);
+      return;
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const referrerUid = urlParams.get('ref');
+    registerBtn.disabled = true;
+    registerBtn.textContent = 'Registering...';
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        const user = userCredential.user;
+        setupInitialUserData(user.uid, user.email, username, referrerUid)
+          .then(() => {
+            console.log(`Initial data set for ${user.uid} with balance ${REGISTRATION_BONUS}`);
+            showMessage(authMessageArea, 'Registration successful! Please login.', true);
+            document.getElementById('username').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+          })
+          .catch(error => {
+            console.error("DB Error setting initial data:", error);
+            showMessage(authMessageArea, `Reg failed (DB Error): ${error.message}.`, false);
+          })
+          .finally(() => {
+            registerBtn.disabled = false;
+            registerBtn.textContent = 'Register Now';
+          });
+      })
+      .catch(error => {
+        console.error("Reg Error:", error);
+        showMessage(authMessageArea, `Reg failed: ${error.message}`, false);
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Register Now';
+      });
+  });
+
+  loginBtn.addEventListener('click', () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if (!email || !password) {
+      showMessage(authMessageArea, 'Enter email/password.', false);
+      return;
+    }
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in...';
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        authMessageArea.textContent = '';
+      })
+      .catch(error => {
+        showMessage(authMessageArea, `Login failed: ${error.message}`, false);
+      })
+      .finally(() => {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+      });
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    auth.signOut().catch(error => console.error("Sign out error:", error));
+  });
+
+  // Withdrawal Logic (unchanged)
+  requestWithdrawBtn.addEventListener('click', () => {
+    const amount = parseFloat(withdrawAmountInput.value);
+    const method = withdrawMethodDashSelect.value;
+    const details = accountDetailsInput.value.trim();
+
+    if (isNaN(amount) || amount <= 0) {
+      showMessage(withdrawMessageArea, "Invalid amount.", false);
+      return;
+    }
+    if (amount < MIN_WITHDRAWAL) {
+      showMessage(withdrawMessageArea, `Minimum withdrawal $${MIN_WITHDRAWAL.toFixed(2)}.`, false);
+      return;
+    }
+    if (!method) {
+      showMessage(withdrawMessageArea, "Select method.", false);
+      return;
+    }
+    if (!details) {
+      showMessage(withdrawMessageArea, "Enter account details.", false);
+      return;
+    }
+    if (!userData || !currentUser) {
+      showMessage(withdrawMessageArea, "User data error. Reload?", false);
+      return;
+    }
+    const userReferralCount = userData.referralCount || 0;
+    if (userReferralCount < MIN_REFERRALS_FOR_WITHDRAWAL) {
+      showMessage(withdrawMessageArea, `Requires ${MIN_REFERRALS_FOR_WITHDRAWAL} invites (You have ${userReferralCount}).`, false);
+      return;
+    }
+    if ((userData.balance || 0) < amount) {
+      showMessage(withdrawMessageArea, "Insufficient balance.", false);
+      return;
+    }
+
+    requestWithdrawBtn.disabled = true;
+    requestWithdrawBtn.textContent = 'Processing...';
+
+    decreaseFirebaseBalance(currentUser.uid, amount)
+      .then(result => {
+        if (!result.committed) throw new Error("Insufficient funds or balance update failed.");
+        return updateFirebaseTotalWithdrawal(currentUser.uid, amount);
+      })
+      .then(() => {
+        return recordWithdrawalRequest(currentUser.uid, amount, method, details);
+      })
+      .then(() => {
+        showMessage(withdrawMessageArea, "Withdrawal request submitted!", true);
+        withdrawAmountInput.value = '';
+        withdrawMethodDashSelect.selectedIndex = 0;
+        accountDetailsInput.value = '';
+      })
+      .catch(error => {
+        console.error("Withdrawal error:", error);
+        showMessage(withdrawMessageArea, `Withdrawal failed: ${error.message}. Balance not deducted if error occurred early.`, false);
+      })
+      .finally(() => {
+        requestWithdrawBtn.disabled = false;
+        requestWithdrawBtn.textContent = 'Request Withdrawal';
+      });
+  });
+
+  // Event Listener for Copy Button (unchanged)
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', () => {
+      if (inviteLinkDisplay?.value) {
+        copyToClipboard(inviteLinkDisplay.value);
+      } else {
+        if(copyMessageArea) showMessage(copyMessageArea, 'Link not available.', false);
+      }
+    });
+  } else {
+    console.warn("Copy button not found.");
+  }
+
+  // Authentication State Observer (unchanged)
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      const userRef = database.ref(`users/${user.uid}`);
+      userRef.off();
+      userRef.on('value', snapshot => {
+        userData = snapshot.val();
+        if (userData) {
+          updateDashboardUI();
+        } else {
+          console.error("User data missing:", user.uid);
+          showMessage(authMessageArea, "Error: User data missing.", false);
+          auth.signOut();
+        }
+      }, error => {
+        console.error("DB read error:", error);
+        showMessage(dashboard, "Error loading data.", false);
+      });
+      authForm.style.display = 'none';
+      dashboard.style.display = 'block';
+      loggedOutExtras.style.display = 'none';
+      if (liveTransactionsSection) liveTransactionsSection.style.display = 'none';
+    } else {
+      if (currentUser) {
+        database.ref(`users/${currentUser.uid}`).off();
+      }
+      currentUser = null;
+      userData = null;
+      authForm.style.display = 'block';
+      dashboard.style.display = 'none';
+      loggedOutExtras.style.display = 'block';
+      if (liveTransactionsSection) liveTransactionsSection.style.display = 'block';
+      clearDashboardUI();
+    }
+  });
+
+  // Initial animations (unchanged)
+  const moneyRain = document.querySelector('.money-rain');
+  if (moneyRain) {
+    for (let i = 0; i < 20; i++) {
+      const icon = document.createElement('i');
+      icon.className = 'fas fa-dollar-sign';
+      icon.style.left = Math.random() * 100 + 'vw';
+      icon.style.animationDuration = Math.random() * 3 + 2 + 's';
+      icon.style.animationDelay = Math.random() * 2 + 's';
+      moneyRain.appendChild(icon);
+    }
+  }
+
+  function animateCounter(element, endValue, duration = 1500) {
+    let startValue = 0;
+    let startTime = null;
+    function animationStep(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      let currentVal = Math.floor(progress * (endValue - startValue) + startValue);
+      element.textContent = currentVal.toLocaleString();
+      if (progress < 1) {
+        requestAnimationFrame(animationStep);
+      }
+    }
+    requestAnimationFrame(animationStep);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const end = parseInt(el.getAttribute('data-end'));
+          if (!isNaN(end)) {
+            animateCounter(el, end);
+            observer.unobserve(el);
+          }
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.counter-outside').forEach(c => {
+      if (c) observer.observe(c);
+    });
+  });
+
+</script>
+
+</!doctype>
